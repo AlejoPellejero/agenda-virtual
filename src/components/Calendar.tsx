@@ -6,7 +6,12 @@ import ModaL from "./Modal";
 interface Props {
   months: Array<string>;
   days: Array<string>;
-  numbers: Array<number>;
+  numbers: Array<DayObject>;
+}
+
+interface DayObject {
+  day: number;
+  isAvailable?: boolean;
 }
 
 interface SavedEntry {
@@ -18,12 +23,54 @@ interface SavedEntry {
   dayNumber?: number | null;
 }
 
-const chunk = (arr: number[], size: number): number[][] => {
-  const res: number[][] = [];
-  let daysCount = 0;
+const setDayAvailability = (
+  dayObj: DayObject,
+  isAvailable: boolean
+): DayObject => {
+  return {
+    ...dayObj,
+    isAvailable,
+  };
+};
 
-  for (let i = 0; i < arr.length; i += size) {
-    res.push(arr.slice(i, i + size));
+const rowsGenerator = (
+  arr: DayObject[],
+  size: number,
+  savedEntries: SavedEntry[]
+): DayObject[][] => {
+  const res: DayObject[][] = [];
+  let daysCount = 0;
+  const updatedArr = [...arr]; // copia del array original
+  const sortedEntries = [...savedEntries].sort((a, b) => {
+    const dayA = a.dayNumber ?? 0; // Si es null o undefined → 0
+    const dayB = b.dayNumber ?? 0;
+    return dayA - dayB; // ascendente
+  });
+
+  for (let i = 0; i < updatedArr.length; i += size) {
+    let isDay = false;
+    let j = 0;
+
+    while (!isDay && j < sortedEntries.length) {
+      if (updatedArr[(sortedEntries[j].dayNumber ?? i + daysCount) - 1].day) {
+        updatedArr[i + daysCount] = {
+          ...updatedArr[i + daysCount],
+          isAvailable: true,
+        };
+        isDay = true;
+        break;
+      }
+      j++;
+    }
+
+    if (!isDay) {
+      updatedArr[i + daysCount] = {
+        ...updatedArr[i + daysCount],
+        isAvailable: false,
+      };
+    }
+
+    res.push(updatedArr.slice(i, i + size));
   }
 
   return res;
@@ -58,7 +105,7 @@ const Calendar = ({ months, days, numbers }: Props) => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = numbers.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(numbers.length / itemsPerPage);
-  const rows = chunk(currentItems, 4);
+  const rows = rowsGenerator(currentItems, 4, savedEntries);
   let countDays = 0;
 
   return (
@@ -86,9 +133,10 @@ const Calendar = ({ months, days, numbers }: Props) => {
           {rows.map((row, rowIndex) => (
             <div className="row" key={rowIndex}>
               {row.map((number) => (
-                <div className="col day-apll" key={number}>
+                <div className="col day-apll" key={number.day}>
                   <Card
-                    number={number}
+                    number={number.day}
+                    isAvailable={number.isAvailable}
                     days={days}
                     onClick={(n: number) => {
                       setSelectedNumber(n);

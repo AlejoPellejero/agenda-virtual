@@ -34,8 +34,13 @@ const App = () => {
     "Viernes",
     "Sábado",
   ];
-
-  const numbers = Array.from({ length: 31 }, (_, i) => i + 1);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0 = enero, 11 = diciembre
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const numbers = Array.from({ length: daysInMonth }, (_, i) => ({
+    day: i + 1,
+  }));
 
   return (
     <div className="main-agenda-apll">
