@@ -2,30 +2,20 @@ import React, { useState, useEffect } from "react";
 import { Fragment } from "react/jsx-runtime";
 import Card from "./Card";
 import ModaL from "./Modal";
+import { FormData, DayObject } from "./Calendar.interfaces";
 
 interface Props {
   months: Array<string>;
   days: Array<string>;
-  numbers: Array<DayObject>;
+  daysOfMonth: Array<DayObject>;
 }
 
-interface DayObject {
-  day: number;
-  isAvailable?: boolean;
-}
-
-interface SavedEntry {
-  name: string;
-  email: string;
-  phone: string;
-  tipo: string;
-  description: string;
-  dayNumber?: number | null;
-}
+const storageKey = "agenda_saved_entries";
+const cardsPerPage = 8;
 
 const setDayAvailability = (
   dayObj: DayObject,
-  isAvailable: boolean
+  isAvailable: boolean,
 ): DayObject => {
   return {
     ...dayObj,
@@ -33,58 +23,65 @@ const setDayAvailability = (
   };
 };
 
-const rowsGenerator = (
-  arr: DayObject[],
-  size: number,
-  savedEntries: SavedEntry[]
+const columnsGenerator = (
+  cardsArr: DayObject[],
+  columnsQty: number,
+  daySheduled: FormData[],
 ): DayObject[][] => {
   const res: DayObject[][] = [];
   let daysCount = 0;
-  const updatedArr = [...arr]; // copia del array original
-  const sortedEntries = [...savedEntries].sort((a, b) => {
+  const updatedCardsArr = [...cardsArr];
+  const sortedDayScheduled = [...daySheduled].sort((a, b) => {
     const dayA = a.dayNumber ?? 0; // Si es null o undefined → 0
     const dayB = b.dayNumber ?? 0;
     return dayA - dayB; // ascendente
   });
 
-  for (let i = 0; i < updatedArr.length; i += size) {
+  for (let i = 0; i < updatedCardsArr.length; i += columnsQty) {
     let isDay = false;
     let j = 0;
+    let daysSet = 0;
 
-    while (!isDay && j < sortedEntries.length) {
-      if (updatedArr[(sortedEntries[j].dayNumber ?? i + daysCount) - 1].day) {
-        updatedArr[i + daysCount] = {
-          ...updatedArr[i + daysCount],
-          isAvailable: true,
-        };
-        isDay = true;
-        break;
+    while (!isDay && j <= 7) {
+      const scheduledDayNumber =
+        sortedDayScheduled.length > 0 &&
+        sortedDayScheduled[daysSet] &&
+        !sortedDayScheduled[daysSet].isScheduled
+          ? (sortedDayScheduled[daysSet].dayNumber ?? 0)
+          : 0;
+
+      updatedCardsArr[j] = {
+        ...updatedCardsArr[j],
+        isAvailable: true,
+      };
+
+      if (scheduledDayNumber > 0 && !sortedDayScheduled[daysSet].isScheduled) {
+        if (updatedCardsArr[j].day === scheduledDayNumber) {
+          updatedCardsArr[j] = {
+            ...updatedCardsArr[j],
+            isAvailable: false,
+          };
+          daysSet++;
+        }
       }
       j++;
     }
 
-    if (!isDay) {
-      updatedArr[i + daysCount] = {
-        ...updatedArr[i + daysCount],
-        isAvailable: false,
-      };
-    }
-
-    res.push(updatedArr.slice(i, i + size));
+    res.push(updatedCardsArr.slice(i, i + columnsQty));
   }
 
   return res;
 };
 
-const Calendar = ({ months, days, numbers }: Props) => {
+const Calendar = ({ months, days, daysOfMonth }: Props) => {
+  const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
-  const [selectedNumber, setSelectedNumber] = useState<number | null>(null);
-  const storageKey = "agenda_saved_entries";
+  const [daySelected, setDaySelected] = useState<number>(0);
 
-  const [savedEntries, setSavedEntries] = useState<SavedEntry[]>(() => {
+  const [dayScheduled, setSheduledDay] = useState<FormData[]>(() => {
     try {
       const raw = localStorage.getItem(storageKey);
-      return raw ? (JSON.parse(raw) as SavedEntry[]) : [];
+      return raw ? (JSON.parse(raw) as FormData[]) : [];
     } catch (e) {
       console.warn("Could not parse saved entries from localStorage", e);
       return [];
@@ -93,20 +90,17 @@ const Calendar = ({ months, days, numbers }: Props) => {
 
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify(savedEntries));
+      localStorage.setItem(storageKey, JSON.stringify(dayScheduled));
     } catch (e) {
       console.warn("Could not save entries to localStorage", e);
     }
-  }, [savedEntries]);
+  }, [dayScheduled]);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = numbers.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(numbers.length / itemsPerPage);
-  const rows = rowsGenerator(currentItems, 4, savedEntries);
-  let countDays = 0;
+  const indexOfLastCard = currentPage * cardsPerPage;
+  const indexOfFirstCard = indexOfLastCard - cardsPerPage;
+  const currentCards = daysOfMonth.slice(indexOfFirstCard, indexOfLastCard);
+  const totalPages = Math.ceil(daysOfMonth.length / cardsPerPage);
+  const columns = columnsGenerator(currentCards, 4, dayScheduled);
 
   return (
     <Fragment>
@@ -121,25 +115,25 @@ const Calendar = ({ months, days, numbers }: Props) => {
           <ModaL
             onClick={() => {
               setShowModal(false);
-              setSelectedNumber(null);
+              setDaySelected(0);
             }}
-            initialNumber={selectedNumber}
+            daySelected={daySelected}
             onSave={(entry) => {
-              setSavedEntries((prev) => [...prev, entry]);
+              setSheduledDay((prev) => [...prev, entry]);
             }}
           />
         )}
         <div className="options-day-by-apll">
-          {rows.map((row, rowIndex) => (
+          {columns.map((row, rowIndex) => (
             <div className="row" key={rowIndex}>
-              {row.map((number) => (
-                <div className="col day-apll" key={number.day}>
+              {row.map((card) => (
+                <div className="col day-apll" key={card.day}>
                   <Card
-                    number={number.day}
-                    isAvailable={number.isAvailable}
+                    number={card.day}
+                    isAvailable={card.isAvailable}
                     days={days}
                     onClick={(n: number) => {
-                      setSelectedNumber(n);
+                      setDaySelected(n);
                       setShowModal(true);
                     }}
                   />
@@ -177,15 +171,15 @@ const Calendar = ({ months, days, numbers }: Props) => {
         {/* Saved entries panel (persisted in localStorage) */}
         <div className="saved-entries mt-4">
           <h6>Entradas guardadas</h6>
-          {savedEntries.length === 0 ? (
+          {dayScheduled.length === 0 ? (
             <p className="text-muted">No hay entradas guardadas aún.</p>
           ) : (
             <ul className="list-group">
-              {savedEntries.map((entry, idx) => (
+              {dayScheduled.map((entry, idx) => (
                 <li className="list-group-item" key={idx}>
                   <strong>Día:</strong> {entry.dayNumber ?? "-"} —{" "}
                   <strong>Nombre:</strong> {entry.name} — <strong>Tipo:</strong>{" "}
-                  {entry.tipo} — <strong>Mail:</strong> {entry.email}
+                  {entry.type} — <strong>Mail:</strong> {entry.email}
                 </li>
               ))}
             </ul>

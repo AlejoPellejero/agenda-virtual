@@ -13,7 +13,7 @@ const getDayText = (days: Array<string>, number: number): string => {
   return days[(number - 1) % days.length];
 };
 
-function Card({ days, number, isAvailable, onClick }: Props) {
+function Card({ number, isAvailable, days, onClick }: Props) {
   return (
     <Fragment>
       <div className="card mb-3 card-by-apll">
@@ -21,7 +21,7 @@ function Card({ days, number, isAvailable, onClick }: Props) {
           <h5 className="card-title card-title-by-apll">
             {getDayText(days, number)} <span>{number}</span>
           </h5>
-          {isAvailable ? (
+          {!isAvailable ? (
             <div className="alert alert-success" role="alert">
               Día no disponible
             </div>

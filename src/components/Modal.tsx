@@ -1,33 +1,26 @@
 import React, { Fragment, useState, useEffect } from "react";
 import Button from "./Button";
+import { FormData } from "./Calendar.interfaces";
 
 interface Props {
   onClick: () => void;
-  initialNumber?: number | null;
+  daySelected: number;
   onSave?: (data: FormData) => void;
 }
 
-interface FormData {
-  name: string;
-  email: string;
-  phone: string;
-  tipo: string;
-  description: string;
-  dayNumber?: number | null;
-}
-
-const Modal = ({ onClick, initialNumber, onSave }: Props) => {
+const Modal = ({ onClick, daySelected, onSave }: Props) => {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
     phone: "",
-    tipo: "",
+    type: "",
     description: "",
-    dayNumber: null,
+    dayNumber: daySelected,
+    isScheduled: false,
   });
 
   const onHandleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     const { name, value } = e.target;
 
@@ -58,16 +51,17 @@ const Modal = ({ onClick, initialNumber, onSave }: Props) => {
       name: "",
       email: "",
       phone: "",
-      tipo: "",
+      type: "",
       description: "",
-      dayNumber: null,
+      dayNumber: 0,
+      isScheduled: false,
     });
   };
 
   // Sync initialNumber into formData whenever the modal opens / the number changes
   useEffect(() => {
-    setFormData((prev) => ({ ...prev, dayNumber: initialNumber ?? null }));
-  }, [initialNumber]);
+    setFormData((prev) => ({ ...prev, dayNumber: daySelected }));
+  }, [daySelected]);
 
   return (
     <Fragment>
@@ -110,8 +104,8 @@ const Modal = ({ onClick, initialNumber, onSave }: Props) => {
               />
               <select
                 className="form-select"
-                name="tipo"
-                value={formData.tipo}
+                name="type"
+                value={formData.type}
                 onChange={onHandleChange}
                 required
               >
@@ -125,9 +119,10 @@ const Modal = ({ onClick, initialNumber, onSave }: Props) => {
             </div>
             <div className="mb-3 form-group-by-apll">
               <textarea
-                placeholder="Descripcion general: medidas, fechas, marcas, etc..."
+                placeholder="Descripcion general: medidas del vidrio, tipo de polarizado o lamina, etc."
                 className="form-control"
                 name="description"
+                value={formData.description}
               ></textarea>
             </div>
             <button type="submit" className="btn btn-dark btn-by-apll">

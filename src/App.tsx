@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { Fragment } from "react/jsx-runtime";
 import Calendar from "./components/Calendar";
-import { MouseEvent } from "react";
 import ListGroup from "./components/ListGroup";
 
 const App = () => {
@@ -37,8 +34,8 @@ const App = () => {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth(); // 0 = enero, 11 = diciembre
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const numbers = Array.from({ length: daysInMonth }, (_, i) => ({
+  const qtyDaysOfMonth = new Date(year, month + 1, 0).getDate();
+  const daysOfMonth = Array.from({ length: qtyDaysOfMonth }, (_, i) => ({
     day: i + 1,
   }));
 
@@ -52,7 +49,11 @@ const App = () => {
           <ListGroup items={items} onSelectItem={handleSelectItem} />
         </div>
       </div>
-      <Calendar months={months} days={days} numbers={numbers}></Calendar>
+      <Calendar
+        months={months}
+        days={days}
+        daysOfMonth={daysOfMonth}
+      ></Calendar>
     </div>
   );
 };
